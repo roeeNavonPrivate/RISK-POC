@@ -1,0 +1,6 @@
+{
+  "name": "סיכון (Risk) - משחק אסטרטגיה עולמי",
+  "description": "משחק הלוח האסטרטגי האגדי סיכון (Risk) עם מולטיפלייר, לובי מארח ואורח, שחקני AI, קרבות קוביות, היסטוריית משחקים וסקירת AI טקטית.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
