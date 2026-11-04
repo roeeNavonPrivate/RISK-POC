@@ -53,6 +53,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [selectedColor, setSelectedColor] = useState(userProfile.preferredColor || PLAYER_COLORS[0].hex);
   const [aiCount, setAiCount] = useState(3);
   const [aiPersonality, setAiPersonality] = useState<'balanced' | 'aggressive' | 'defensive'>('balanced');
+  // Quick game AI bots count selection: 1 to 3 bots (default 3)
+  const [quickAiBots, setQuickAiBots] = useState<number>(3);
+  const [showQuickAiModal, setShowQuickAiModal] = useState<boolean>(false);
 
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +82,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     });
   };
 
-  const handleQuickSinglePlayer = () => {
+  const handleQuickSinglePlayer = (bots: number = quickAiBots) => {
+    const safeBotCount = Math.max(1, Math.min(3, bots));
     onCreateGame({
-      playersCount: 4,
+      playersCount: safeBotCount + 1, // 1 human player + selected number of AI bots (2, 3, or 4 total players)
       hostColor: selectedColor,
-      aiCount: 3,
+      aiCount: safeBotCount,
       aiDifficulty: 'balanced'
     });
   };
@@ -117,7 +121,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             שחק עם חברים ברשת או אתגר שחקני AI טקטיים עם סקירת AI מפורטת בסיום!
           </p>
 
-          <div className="pt-2 flex flex-wrap gap-3">
+          {/* Action Row: Host Game & Quick AI Game with 1-3 Bot Selector */}
+          <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-base shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
@@ -126,14 +131,90 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <span>משחק חדש (מארח)</span>
             </button>
 
-            <button
-              onClick={handleQuickSinglePlayer}
-              className="flex items-center gap-2 px-5 py-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <Play className="w-4 h-4 text-emerald-400" />
-              <span>קרב מהיר נגד AI</span>
-            </button>
+            {/* Quick Game Against AI with 1-3 Bots Picker */}
+            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1.5 shadow-lg">
+              <button
+                onClick={() => handleQuickSinglePlayer(quickAiBots)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                title={`התחל מיד קרב מהיר נגד ${quickAiBots} שחקני AI`}
+              >
+                <Play className="w-4 h-4 fill-white" />
+                <span>קרב מהיר נגד AI</span>
+              </button>
+
+              <div className="h-6 w-px bg-slate-700 mx-0.5" />
+
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] font-bold text-slate-400 pl-1 flex items-center gap-1">
+                  <Bot className="w-3.5 h-3.5 text-purple-400" />
+                  <span>בוטים:</span>
+                </span>
+                {[1, 2, 3].map(bots => (
+                  <button
+                    key={bots}
+                    type="button"
+                    onClick={() => setQuickAiBots(bots)}
+                    className={`w-8 h-8 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
+                      quickAiBots === bots
+                        ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 scale-105 border border-purple-400 ring-1 ring-purple-300'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60'
+                    }`}
+                    title={`${bots} בוטים (${bots + 1} שחקנים במפה)`}
+                  >
+                    {bots}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Match Against AI Card - 1 to 3 Bots */}
+      <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/20 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl hover:border-emerald-500/50 transition-all">
+        <div className="flex items-center gap-5 text-right w-full md:w-auto">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+            <Bot className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+              <span>קרב מהיר לשחקן יחיד</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white">משחק מהיר נגד שחקני AI</h2>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
+              בחר כמה בוטים יתמודדו מולך (1 עד 3 בוטים), והתחל מיד בקרב שליטה עולמית ללא צורך בהמתנה לשחקנים נוספים.
+            </p>
+          </div>
+        </div>
+
+        {/* Bot selector & Launch button */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
+          <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 p-1.5 rounded-xl w-full sm:w-auto justify-center">
+            <span className="text-xs font-bold text-slate-400 px-2">מספר בוטים:</span>
+            {[1, 2, 3].map(cnt => (
+              <button
+                key={cnt}
+                type="button"
+                onClick={() => setQuickAiBots(cnt)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                  quickAiBots === cnt
+                    ? 'bg-purple-600 text-white shadow-md border border-purple-400 scale-105'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                }`}
+              >
+                <Bot className="w-3 h-3" />
+                <span>{cnt} {cnt === 1 ? 'בוט' : 'בוטים'}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handleQuickSinglePlayer(quickAiBots)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Play className="w-4 h-4 fill-slate-950" />
+            <span>התחל קרב ({quickAiBots + 1} שחקנים)</span>
+          </button>
         </div>
       </div>
 
