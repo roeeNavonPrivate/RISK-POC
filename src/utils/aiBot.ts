@@ -1,6 +1,6 @@
 import { GameState, TerritoryState } from '../types/risk';
 import { TERRITORY_MAP, CONTINENTS } from '../data/riskMapData';
-import { resolveBattle, checkGameEndConditions, calculateReinforcements } from './gameRules';
+import { resolveBattle, checkGameEndConditions, calculateReinforcements, isPathConnected } from './gameRules';
 import { sound } from './audio';
 
 // AI decision maker with delay for human players to observe
@@ -171,34 +171,58 @@ export async function executeAiTurn(
     if (toArmies <= 0) {
       // Conquered!
       sound.playConquer();
-      const armiesToMove = Math.max(attackerDiceCount, fromArmies - 1);
+      // Origin territory must keep at least 1 army
+      const maxCanMove = Math.max(1, fromArmies - 1);
+      const armiesToMove = Math.min(maxCanMove, Math.max(1, attackerDiceCount));
       const remainingInOrigin = fromArmies - armiesToMove;
+
+      // Check win or elimination
+      const simulatedTerritories = {
+        ...state.territories,
+        [fromId]: { ...state.territories[fromId], armies: remainingInOrigin },
+        [toId]: { ownerId: aiPlayer.id, armies: armiesToMove }
+      };
+
+      const { updatedPlayers, winner } = checkGameEndConditions({
+        ...state,
+        territories: simulatedTerritories
+      });
+
+      const defenderNow = updatedPlayers.find(p => p.id === defenderPlayer?.id);
+      const wasEliminated = defenderNow?.eliminated && !defenderPlayer?.eliminated;
+
+      const newLogs = [...state.logs];
+      if (wasEliminated && defenderNow) {
+        newLogs.unshift({
+          id: 'log_elim_' + Date.now() + Math.random(),
+          turn: state.turn,
+          playerId: defenderNow.id,
+          playerName: defenderNow.name,
+          playerColor: defenderNow.color,
+          text: `💀 ${defenderNow.name} הודח מהמשחק לאחר שאיבד את כל הטריטוריות שלו!`,
+          type: 'eliminate',
+          timestamp: Date.now()
+        });
+      }
+
+      newLogs.unshift({
+        id: 'log_' + Date.now() + Math.random(),
+        turn: state.turn,
+        playerId: aiPlayer.id,
+        playerName: aiPlayer.name,
+        playerColor: aiPlayer.color,
+        text: `🚩 ${aiPlayer.name} כבש את ${TERRITORY_MAP[toId]?.nameHebrew || toId} מידי ${defenderPlayer?.name || 'היריב'}!`,
+        type: 'conquer',
+        timestamp: Date.now()
+      });
 
       state = {
         ...state,
-        territories: {
-          ...state.territories,
-          [fromId]: { ...state.territories[fromId], armies: remainingInOrigin },
-          [toId]: { ownerId: aiPlayer.id, armies: armiesToMove }
-        },
-        logs: [
-          {
-            id: 'log_' + Date.now() + Math.random(),
-            turn: state.turn,
-            playerId: aiPlayer.id,
-            playerName: aiPlayer.name,
-            playerColor: aiPlayer.color,
-            text: `🚩 ${aiPlayer.name} כבש את ${TERRITORY_MAP[toId]?.nameHebrew || toId} מידי ${defenderPlayer?.name || 'היריב'}!`,
-            type: 'conquer',
-            timestamp: Date.now()
-          },
-          ...state.logs.slice(0, 40)
-        ]
+        territories: simulatedTerritories,
+        players: updatedPlayers,
+        logs: newLogs.slice(0, 45)
       };
 
-      // Check win or elimination
-      const { updatedPlayers, winner } = checkGameEndConditions(state);
-      state.players = updatedPlayers;
       if (winner) {
         state.winnerId = winner.id;
         state.phase = 'game_over';
@@ -243,6 +267,7 @@ export async function executeAiTurn(
   };
   onStateUpdate(state);
   await wait(500);
+  if (isCancelled()) return;
 
   // Move troops from an interior territory (no enemy borders) to a border territory
   const interiorTerritories = Object.keys(state.territories).filter(id => {
@@ -257,14 +282,15 @@ export async function executeAiTurn(
     const sourceId = interiorTerritories[0];
     const sourceArmies = state.territories[sourceId].armies;
     
-    // Find border territory
+    // Find border territory connected through friendly path
     const borderTerritory = Object.keys(state.territories).find(id => {
-      if (state.territories[id].ownerId !== aiPlayer.id) return false;
+      if (state.territories[id].ownerId !== aiPlayer.id || id === sourceId) return false;
       const def = TERRITORY_MAP[id];
-      return def?.adjacentIds.some(adjId => state.territories[adjId]?.ownerId !== aiPlayer.id);
+      const isBorder = def?.adjacentIds.some(adjId => state.territories[adjId]?.ownerId !== aiPlayer.id);
+      return isBorder && isPathConnected(sourceId, id, aiPlayer.id, state.territories);
     });
 
-    if (borderTerritory && borderTerritory !== sourceId) {
+    if (borderTerritory) {
       const moveCount = sourceArmies - 1;
       state = {
         ...state,
@@ -293,10 +319,14 @@ export async function executeAiTurn(
     }
   }
 
+  if (isCancelled()) return;
+
   // --- Step 4: End AI Turn & Advance to next player ---
   let nextIndex = (state.activePlayerIndex + 1) % state.players.length;
-  while (state.players[nextIndex].eliminated) {
+  let safetyCounter = 0;
+  while (state.players[nextIndex].eliminated && safetyCounter < state.players.length) {
     nextIndex = (nextIndex + 1) % state.players.length;
+    safetyCounter++;
   }
 
   const nextPlayer = state.players[nextIndex];

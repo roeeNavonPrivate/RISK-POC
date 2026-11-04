@@ -78,8 +78,10 @@ export default function App() {
     resolver?: (diceCount: number) => void;
   } | null>(null);
 
-  // AI execution cancellation ref
+  // AI execution cancellation and tracking refs
   const isAiCancelled = useRef<boolean>(false);
+  const isAiExecuting = useRef<boolean>(false);
+  const currentExecutingAiKey = useRef<string>('');
 
   // Check URL query parameters for invite link: ?room=RISK-XXXX
   useEffect(() => {
@@ -118,27 +120,64 @@ export default function App() {
     return unsubscribe;
   }, [roomCode]);
 
+  // Cancel any running AI process if navigating away from the game screen
+  useEffect(() => {
+    if (currentScreen !== 'game') {
+      isAiCancelled.current = true;
+      isAiExecuting.current = false;
+      currentExecutingAiKey.current = '';
+    }
+  }, [currentScreen]);
+
   // Handle AI turn execution when active player changes
   useEffect(() => {
-    if (!gameState || gameState.phase === 'game_over') return;
-
-    const activePlayer = gameState.players[gameState.activePlayerIndex];
-    if (activePlayer && activePlayer.isAi && !activePlayer.eliminated) {
-      isAiCancelled.current = false;
-      executeAiTurn(
-        gameState,
-        (updatedState) => {
-          setGameState(updatedState);
-          syncGameState(updatedState);
-        },
-        () => isAiCancelled.current
-      );
+    if (!gameState || gameState.phase === 'game_over' || gameState.winnerId) {
+      isAiCancelled.current = true;
+      isAiExecuting.current = false;
+      currentExecutingAiKey.current = '';
+      return;
     }
 
-    return () => {
-      isAiCancelled.current = true;
-    };
-  }, [gameState?.activePlayerIndex, gameState?.phase, gameState?.winnerId]);
+    // Only host executes AI bot turns to prevent conflicting actions in multiplayer
+    if (!isHost) return;
+
+    const activePlayer = gameState.players[gameState.activePlayerIndex];
+    if (!activePlayer || !activePlayer.isAi || activePlayer.eliminated) {
+      isAiExecuting.current = false;
+      currentExecutingAiKey.current = '';
+      return;
+    }
+
+    // Unique key per bot turn to avoid duplicate/re-entrant triggers
+    const turnKey = `${gameState.turn}_${gameState.activePlayerIndex}_${activePlayer.id}`;
+    if (currentExecutingAiKey.current === turnKey || isAiExecuting.current) {
+      return;
+    }
+
+    currentExecutingAiKey.current = turnKey;
+    isAiExecuting.current = true;
+    isAiCancelled.current = false;
+
+    executeAiTurn(
+      gameState,
+      (updatedState) => {
+        setGameState(updatedState);
+        syncGameState(updatedState);
+
+        // If bot won the game, record it
+        if (updatedState.winnerId) {
+          const winner = updatedState.players.find(p => p.id === updatedState.winnerId);
+          if (winner) {
+            sound.playVictory();
+            recordFinishedGame(updatedState, winner);
+          }
+        }
+      },
+      () => isAiCancelled.current
+    ).finally(() => {
+      isAiExecuting.current = false;
+    });
+  }, [gameState?.activePlayerIndex, gameState?.turn, gameState?.winnerId, isHost]);
 
   // Sync game state to server & broadcast channel
   const syncGameState = (state: GameState) => {
@@ -318,6 +357,10 @@ export default function App() {
   // Host starts the game
   const handleStartGame = () => {
     if (!isHost || lobbyPlayers.length < 2) return;
+
+    currentExecutingAiKey.current = '';
+    isAiExecuting.current = false;
+    isAiCancelled.current = false;
 
     const initialGameState = createInitialGameState(lobbyPlayers, roomCode);
     setGameState(initialGameState);
