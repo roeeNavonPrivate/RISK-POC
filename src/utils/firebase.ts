@@ -34,10 +34,8 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client is offline or starting up.');
-    }
+  } catch {
+    // Silent
   }
 }
 
@@ -125,8 +123,8 @@ export async function saveProfileToFirestore(profile: UserProfile): Promise<void
       ...profile,
       updatedAt: Date.now()
     }, { merge: true });
-  } catch (err) {
-    console.warn('Failed to save profile to Firestore:', err);
+  } catch {
+    // Silent
   }
 }
 
@@ -137,8 +135,8 @@ export async function loadProfileFromFirestore(userId: string): Promise<UserProf
     if (snap.exists()) {
       return snap.data() as UserProfile;
     }
-  } catch (err) {
-    console.warn('Failed to load profile from Firestore:', err);
+  } catch {
+    // Silent
   }
   return null;
 }

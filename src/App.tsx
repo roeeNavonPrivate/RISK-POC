@@ -304,8 +304,8 @@ export default function App() {
     playersCount: number;
     hostColor: string;
     aiCount: number;
-    aiDifficulty?: 'balanced' | 'aggressive' | 'defensive';
-    aiPersonalities?: Array<'balanced' | 'aggressive' | 'defensive'>;
+    aiDifficulty?: 'easy' | 'medium' | 'hard' | 'balanced' | 'aggressive' | 'defensive';
+    aiPersonalities?: Array<'easy' | 'medium' | 'hard' | 'balanced' | 'aggressive' | 'defensive'>;
     mapType?: 'world' | 'israel';
     autoStart?: boolean;
   }) => {

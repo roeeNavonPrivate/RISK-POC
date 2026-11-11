@@ -293,19 +293,22 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-[10px] text-slate-400 font-bold ml-1">רמה:</span>
                             {[
-                              { id: 'balanced', label: 'מאוזן' },
-                              { id: 'aggressive', label: 'הסתערות' },
-                              { id: 'defensive', label: 'מבוצר' },
+                              { id: 'easy', label: 'קל' },
+                              { id: 'medium', label: 'בינוני' },
+                              { id: 'hard', label: 'קשה' },
                             ].map(diff => (
                               <button
                                 key={diff.id}
                                 type="button"
                                 onClick={() => onUpdatePlayer(player.id, { aiPersonality: diff.id as any })}
                                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                                  player.aiPersonality === diff.id
-                                    ? diff.id === 'aggressive'
+                                  (player.aiPersonality === diff.id || 
+                                   (diff.id === 'medium' && (player.aiPersonality === 'balanced' || !player.aiPersonality)) ||
+                                   (diff.id === 'hard' && player.aiPersonality === 'aggressive') ||
+                                   (diff.id === 'easy' && player.aiPersonality === 'defensive'))
+                                    ? diff.id === 'hard'
                                       ? 'bg-red-700 text-white border-red-500 font-black'
-                                      : diff.id === 'defensive'
+                                      : diff.id === 'medium'
                                       ? 'bg-blue-700 text-white border-blue-500 font-black'
                                       : 'bg-emerald-700 text-white border-emerald-500 font-black'
                                     : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
@@ -316,11 +319,11 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                             ))}
                           </div>
                         ) : (
-                          player.aiPersonality === 'aggressive'
-                            ? 'בוט אגרסיבי (הסתערות)'
-                            : player.aiPersonality === 'defensive'
-                            ? 'בוט מבוצר (הגנתי)'
-                            : 'בוט טקטי (מאוזן)'
+                          player.aiPersonality === 'hard' || player.aiPersonality === 'aggressive'
+                            ? 'בוט קשה (תוקפני)'
+                            : player.aiPersonality === 'easy' || player.aiPersonality === 'defensive'
+                            ? 'בוט קל (הגנתי)'
+                            : 'בוט בינוני (טקטי)'
                         )
                       ) : (
                         player.id === currentPlayerId ? 'אתה' : 'שחקן אורח'

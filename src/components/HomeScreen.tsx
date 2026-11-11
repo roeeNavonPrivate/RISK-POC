@@ -22,8 +22,8 @@ interface HomeScreenProps {
     playersCount: number;
     hostColor: string;
     aiCount: number;
-    aiDifficulty?: 'balanced' | 'aggressive' | 'defensive';
-    aiPersonalities?: Array<'balanced' | 'aggressive' | 'defensive'>;
+    aiDifficulty?: 'easy' | 'medium' | 'hard' | 'balanced' | 'aggressive' | 'defensive';
+    aiPersonalities?: Array<'easy' | 'medium' | 'hard' | 'balanced' | 'aggressive' | 'defensive'>;
     mapType?: 'world' | 'israel';
     autoStart?: boolean;
   }) => void;
@@ -47,14 +47,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   // Map theater: 'world' vs 'israel'
   const [selectedMap, setSelectedMap] = useState<'world' | 'israel'>('world');
 
-  // Solo AI setup
+  // Solo AI setup: 1 to 5 bots with per-bot easy / medium / hard
   const [soloAiCount, setSoloAiCount] = useState(3);
-  const [soloAiPersonalities, setSoloAiPersonalities] = useState<Record<number, 'balanced' | 'aggressive' | 'defensive'>>({
-    0: 'balanced',
-    1: 'aggressive',
-    2: 'defensive',
-    3: 'balanced',
-    4: 'aggressive',
+  const [soloAiPersonalities, setSoloAiPersonalities] = useState<Record<number, 'easy' | 'medium' | 'hard'>>({
+    0: 'medium',
+    1: 'hard',
+    2: 'easy',
+    3: 'medium',
+    4: 'hard',
   });
 
   // Join Room state
@@ -67,12 +67,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [totalPlayers, setTotalPlayers] = useState(4);
   const [selectedColor, setSelectedColor] = useState(userProfile.preferredColor || PLAYER_COLORS[0].hex);
   const [aiCount, setAiCount] = useState(3);
-  const [hostAiPersonalities, setHostAiPersonalities] = useState<Record<number, 'balanced' | 'aggressive' | 'defensive'>>({
-    0: 'balanced',
-    1: 'balanced',
-    2: 'balanced',
-    3: 'balanced',
-    4: 'balanced',
+  const [hostAiPersonalities, setHostAiPersonalities] = useState<Record<number, 'easy' | 'medium' | 'hard'>>({
+    0: 'medium',
+    1: 'medium',
+    2: 'medium',
+    3: 'medium',
+    4: 'medium',
   });
 
   const winPercentage = userProfile.gamesPlayed > 0 
@@ -96,7 +96,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const handleStartSolo = () => {
-    const personalities = Array.from({ length: soloAiCount }, (_, i) => soloAiPersonalities[i] || 'balanced');
+    const personalities = Array.from({ length: soloAiCount }, (_, i) => soloAiPersonalities[i] || 'medium');
     onCreateGame({
       playersCount: soloAiCount + 1,
       hostColor: selectedColor,
@@ -110,12 +110,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const handleStartHostGame = () => {
     const count = Math.min(aiCount, totalPlayers - 1);
-    const personalities = Array.from({ length: count }, (_, i) => hostAiPersonalities[i] || 'balanced');
+    const personalities = Array.from({ length: count }, (_, i) => hostAiPersonalities[i] || 'medium');
     onCreateGame({
       playersCount: totalPlayers,
       hostColor: selectedColor,
       aiCount: count,
-      aiDifficulty: personalities[0] || 'balanced',
+      aiDifficulty: personalities[0] || 'medium',
       aiPersonalities: personalities,
       mapType: selectedMap,
       autoStart: false,
@@ -123,14 +123,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     setShowCreateModal(false);
   };
 
-  const setSoloBotPersonality = (botIndex: number, diff: 'balanced' | 'aggressive' | 'defensive') => {
+  const setSoloBotPersonality = (botIndex: number, diff: 'easy' | 'medium' | 'hard') => {
     setSoloAiPersonalities(prev => ({
       ...prev,
       [botIndex]: diff
     }));
   };
 
-  const setHostBotPersonality = (botIndex: number, diff: 'balanced' | 'aggressive' | 'defensive') => {
+  const setHostBotPersonality = (botIndex: number, diff: 'easy' | 'medium' | 'hard') => {
     setHostAiPersonalities(prev => ({
       ...prev,
       [botIndex]: diff
@@ -247,12 +247,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <span className="font-bold text-white truncate">{botInfo.name}</span>
                       </div>
 
-                      {/* 3 difficulty buttons for this bot */}
+                      {/* 3 difficulty buttons for this bot: easy / medium / hard */}
                       <div className="flex items-center gap-1 shrink-0">
                         {[
-                          { id: 'balanced', label: 'מאוזן' },
-                          { id: 'aggressive', label: 'הסתערות' },
-                          { id: 'defensive', label: 'מבוצר' },
+                          { id: 'easy', label: 'קל' },
+                          { id: 'medium', label: 'בינוני' },
+                          { id: 'hard', label: 'קשה' },
                         ].map(diff => (
                           <button
                             key={diff.id}
@@ -260,11 +260,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                             onClick={() => setSoloBotPersonality(idx, diff.id as any)}
                             className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
                               currentDiff === diff.id
-                                ? diff.id === 'aggressive'
+                                ? diff.id === 'hard'
                                   ? 'bg-[#dc2626] text-white border-red-500 font-black shadow'
-                                  : diff.id === 'defensive'
-                                  ? 'bg-blue-700 text-white border-blue-500 font-black shadow'
-                                  : 'bg-emerald-700 text-white border-emerald-500 font-black shadow'
+                                  : diff.id === 'medium'
+                                  ? 'bg-[#2563eb] text-white border-blue-400 font-black shadow'
+                                  : 'bg-emerald-600 text-white border-emerald-400 font-black shadow'
                                 : 'bg-[#15233a] text-slate-400 border-[#273d61] hover:text-slate-200'
                             }`}
                           >
@@ -552,9 +552,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <span className="font-bold text-white text-[11px] truncate">{botInfo.name}</span>
                         <div className="flex items-center gap-1">
                           {[
-                            { id: 'balanced', label: 'מאוזן' },
-                            { id: 'aggressive', label: 'הסתערות' },
-                            { id: 'defensive', label: 'מבוצר' },
+                            { id: 'easy', label: 'קל' },
+                            { id: 'medium', label: 'בינוני' },
+                            { id: 'hard', label: 'קשה' },
                           ].map(diff => (
                             <button
                               key={diff.id}
@@ -562,7 +562,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                               onClick={() => setHostBotPersonality(idx, diff.id as any)}
                               className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
                                 currentDiff === diff.id
-                                  ? 'bg-blue-600 text-white border-blue-400 font-black'
+                                  ? diff.id === 'hard'
+                                    ? 'bg-[#dc2626] text-white border-red-500 font-black'
+                                    : diff.id === 'medium'
+                                    ? 'bg-[#2563eb] text-white border-blue-400 font-black'
+                                    : 'bg-emerald-600 text-white border-emerald-400 font-black'
                                   : 'bg-[#15233a] text-slate-400 border-[#273d61]'
                               }`}
                             >

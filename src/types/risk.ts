@@ -26,6 +26,8 @@ export interface Territory {
   flag?: string;
 }
 
+export type AiDifficulty = 'easy' | 'medium' | 'hard';
+
 export interface Player {
   id: string;
   name: string;
@@ -35,7 +37,7 @@ export interface Player {
   textClass: string;
   isHost: boolean;
   isAi: boolean;
-  aiPersonality?: 'aggressive' | 'balanced' | 'defensive';
+  aiPersonality?: 'easy' | 'medium' | 'hard' | 'aggressive' | 'balanced' | 'defensive';
   isReady: boolean;
   eliminated: boolean;
   cardsCount?: number;
