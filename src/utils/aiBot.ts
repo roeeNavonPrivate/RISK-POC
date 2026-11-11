@@ -61,16 +61,24 @@ export async function executeAiTurn(
       }
 
       let score = (enemyNeighbors * 5) + (continentBonusScore) - (state.territories[tId].armies * 0.5);
-      const isHard = aiPlayer.aiPersonality === 'hard' || aiPlayer.aiPersonality === 'aggressive';
-      const isEasy = aiPlayer.aiPersonality === 'easy' || aiPlayer.aiPersonality === 'defensive';
+      const difficulty = aiPlayer.aiDifficulty || 'medium';
+      const personality = aiPlayer.aiPersonality || 'balanced';
 
-      if (isEasy) {
-        // Easy AI: naive placement, spreads troops casually
-        score = (enemyNeighbors * 3) + Math.floor(Math.sin(tId.length) * 4);
-      } else if (isHard) {
-        // Hard AI: concentrates all power on weak enemy borders and continent domination
-        const canCrushEnemy = minEnemyArmies <= 2 ? 15 : 0;
-        score = (enemyNeighbors * 7) + (continentBonusScore * 1.5) + canCrushEnemy + (state.territories[tId].armies * 0.4);
+      // Personality style adjustments
+      if (personality === 'defensive') {
+        score = (enemyNeighbors * 7) - (state.territories[tId].armies * 0.6) + (minEnemyArmies > 2 ? 8 : 0);
+      } else if (personality === 'aggressive') {
+        const canOverpower = minEnemyArmies <= 2 ? 14 : 4;
+        score = (enemyNeighbors * 6) + canOverpower + (state.territories[tId].armies * 0.3);
+      }
+
+      // Difficulty precision adjustments
+      if (difficulty === 'easy') {
+        // Easy: casual distribution with some noise
+        score = (score * 0.5) + ((tId.charCodeAt(0) % 7) * 2);
+      } else if (difficulty === 'hard') {
+        // Hard: hyper-focused concentration on strategic tipping points
+        score = score * 1.4 + (continentBonusScore > 0 ? 12 : 0);
       }
 
       if (score > highestScore) {
@@ -118,14 +126,23 @@ export async function executeAiTurn(
   onStateUpdate(state);
   await wait(500);
 
-  // AI executes attacks based on difficulty (easy / medium / hard)
-  const isHard = aiPlayer.aiPersonality === 'hard' || aiPlayer.aiPersonality === 'aggressive';
-  const isEasy = aiPlayer.aiPersonality === 'easy' || aiPlayer.aiPersonality === 'defensive';
+  // AI executes attacks based on combined difficulty AND personality
+  const diff = aiPlayer.aiDifficulty || 'medium';
+  const pers = aiPlayer.aiPersonality || 'balanced';
+
+  // Base attacks count by difficulty
+  let baseMaxAttacks = diff === 'hard' ? 7 : (diff === 'easy' ? 2 : 4);
+  if (pers === 'aggressive') baseMaxAttacks += 1;
+  if (pers === 'defensive') baseMaxAttacks = Math.max(1, baseMaxAttacks - 1);
+
+  // Attack advantage threshold (lower = more daring)
+  let baseThreshold = diff === 'hard' ? 1.15 : (diff === 'easy' ? 1.65 : 1.35);
+  if (pers === 'aggressive') baseThreshold -= 0.12;
+  if (pers === 'defensive') baseThreshold += 0.20;
 
   let attacksMade = 0;
-  const maxAttacks = isHard ? 7 : (isEasy ? 2 : 4);
 
-  while (attacksMade < maxAttacks) {
+  while (attacksMade < baseMaxAttacks) {
     if (isCancelled()) return;
 
     // Look for favorable attack
@@ -145,10 +162,8 @@ export async function executeAiTurn(
         const targetTerritory = state.territories[toId];
         if (targetTerritory && targetTerritory.ownerId !== aiPlayer.id) {
           const toArmies = targetTerritory.armies;
-          // Must have advantage based on difficulty level
-          const threshold = isHard ? 1.05 : (isEasy ? 1.7 : 1.3);
 
-          if (fromArmies > toArmies * threshold || (fromArmies >= 3 && toArmies === 1)) {
+          if (fromArmies > toArmies * baseThreshold || (fromArmies >= 3 && toArmies === 1)) {
             const ratio = fromArmies / (toArmies || 1);
             if (ratio > maxRatio) {
               maxRatio = ratio;

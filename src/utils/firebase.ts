@@ -50,11 +50,10 @@ export async function loginWithGoogle(): Promise<{ success: boolean; user?: User
     const result = await signInWithPopup(auth, googleProvider);
     return { success: true, user: result.user };
   } catch (err: any) {
-    console.error('Google Sign-In Error:', err);
     // If popup blocked or failed in iframe, provide informative message
     const msg = err.code === 'auth/popup-blocked'
       ? 'החלון הקופץ נחסם על ידי הדפדפן. אפשר חלונות קופצים או השתמש בדוא״ל/אורח.'
-      : err.message || 'שגיאה בהתחברות עם חשבון Google.';
+      : 'שגיאה בהתחברות עם חשבון Google.';
     return { success: false, error: msg };
   }
 }
@@ -65,7 +64,6 @@ export async function loginWithEmail(email: string, pass: string): Promise<{ suc
     const result = await signInWithEmailAndPassword(auth, email, pass);
     return { success: true, user: result.user };
   } catch (err: any) {
-    console.error('Email Login Error:', err);
     let msg = 'שגיאה בהתחברות. בדוק את הדוא״ל והסיסמה.';
     if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
       msg = 'שם משתמש או סיסמה שגויים.';
@@ -85,7 +83,6 @@ export async function registerWithEmail(email: string, pass: string, name: strin
     }
     return { success: true, user: result.user };
   } catch (err: any) {
-    console.error('Registration Error:', err);
     let msg = 'שגיאה ביצירת החשבון.';
     if (err.code === 'auth/email-already-in-use') {
       msg = 'כתובת דוא״ל זו כבר רשומה במערכת.';
@@ -102,8 +99,7 @@ export async function loginAsGuest(): Promise<{ success: boolean; user?: User; e
     const result = await signInAnonymously(auth);
     return { success: true, user: result.user };
   } catch (err: any) {
-    console.error('Guest Login Error:', err);
-    return { success: false, error: err.message || 'שגיאה בכניסה כאורח.' };
+    return { success: false, error: 'שגיאה בכניסה כאורח.' };
   }
 }
 
@@ -111,8 +107,8 @@ export async function loginAsGuest(): Promise<{ success: boolean; user?: User; e
 export async function logoutUser(): Promise<void> {
   try {
     await signOut(auth);
-  } catch (err) {
-    console.error('Signout Error:', err);
+  } catch {
+    // Silent
   }
 }
 

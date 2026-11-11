@@ -193,7 +193,7 @@ app.post('/api/gemini/review', async (req, res) => {
       source: 'gemini-3.8-flash'
     });
   } catch (error: any) {
-    console.error('Gemini review error:', error);
+    console.error('Gemini review error:', error?.message || 'Review generation failed');
     res.json({
       analysis: generateFallbackAnalysis(req.body?.gameSummary || {}),
       source: 'local-tactical-engine'

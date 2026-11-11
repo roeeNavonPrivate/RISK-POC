@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { Player } from '../types/risk';
+import { Player, AiDifficulty, AiPersonality } from '../types/risk';
 import { PLAYER_COLORS } from '../data/riskMapData';
 
 interface LobbyScreenProps {
@@ -290,40 +290,79 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                     <div className="text-[11px] text-slate-400">
                       {player.isAi ? (
                         isHost ? (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-[10px] text-slate-400 font-bold ml-1">רמה:</span>
-                            {[
-                              { id: 'easy', label: 'קל' },
-                              { id: 'medium', label: 'בינוני' },
-                              { id: 'hard', label: 'קשה' },
-                            ].map(diff => (
-                              <button
-                                key={diff.id}
-                                type="button"
-                                onClick={() => onUpdatePlayer(player.id, { aiPersonality: diff.id as any })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                                  (player.aiPersonality === diff.id || 
-                                   (diff.id === 'medium' && (player.aiPersonality === 'balanced' || !player.aiPersonality)) ||
-                                   (diff.id === 'hard' && player.aiPersonality === 'aggressive') ||
-                                   (diff.id === 'easy' && player.aiPersonality === 'defensive'))
-                                    ? diff.id === 'hard'
-                                      ? 'bg-red-700 text-white border-red-500 font-black'
-                                      : diff.id === 'medium'
-                                      ? 'bg-blue-700 text-white border-blue-500 font-black'
-                                      : 'bg-emerald-700 text-white border-emerald-500 font-black'
-                                    : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                                }`}
-                              >
-                                {diff.label}
-                              </button>
-                            ))}
+                          <div className="space-y-1.5 mt-1.5">
+                            {/* 1. Difficulty Level: Easy / Medium / Hard */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-400 font-bold ml-1">רמת קושי:</span>
+                              {[
+                                { id: 'easy', label: 'קל' },
+                                { id: 'medium', label: 'בינוני' },
+                                { id: 'hard', label: 'קשה' },
+                              ].map(diff => {
+                                const currentDiff = player.aiDifficulty || 'medium';
+                                const isActive = currentDiff === diff.id;
+                                return (
+                                  <button
+                                    key={diff.id}
+                                    type="button"
+                                    onClick={() => onUpdatePlayer(player.id, { aiDifficulty: diff.id as AiDifficulty })}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                                      isActive
+                                        ? diff.id === 'hard'
+                                          ? 'bg-red-700 text-white border-red-500 font-black'
+                                          : diff.id === 'medium'
+                                          ? 'bg-blue-700 text-white border-blue-500 font-black'
+                                          : 'bg-emerald-700 text-white border-emerald-500 font-black'
+                                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                                    }`}
+                                  >
+                                    {diff.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* 2. Doctrine / Personality: Balanced / Aggressive / Defensive */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-400 font-bold ml-1">דוקטרינה:</span>
+                              {[
+                                { id: 'balanced', label: 'מאוזן' },
+                                { id: 'aggressive', label: 'הסתערות' },
+                                { id: 'defensive', label: 'מבוצר' },
+                              ].map(pers => {
+                                const currentPers = player.aiPersonality || 'balanced';
+                                const isActive = currentPers === pers.id;
+                                return (
+                                  <button
+                                    key={pers.id}
+                                    type="button"
+                                    onClick={() => onUpdatePlayer(player.id, { aiPersonality: pers.id as AiPersonality })}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                                      isActive
+                                        ? pers.id === 'aggressive'
+                                          ? 'bg-amber-600 text-white border-amber-400 font-black'
+                                          : pers.id === 'defensive'
+                                          ? 'bg-teal-700 text-white border-teal-500 font-black'
+                                          : 'bg-indigo-700 text-white border-indigo-500 font-black'
+                                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                                    }`}
+                                  >
+                                    {pers.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         ) : (
-                          player.aiPersonality === 'hard' || player.aiPersonality === 'aggressive'
-                            ? 'בוט קשה (תוקפני)'
-                            : player.aiPersonality === 'easy' || player.aiPersonality === 'defensive'
-                            ? 'בוט קל (הגנתי)'
-                            : 'בוט בינוני (טקטי)'
+                          <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5">
+                            <span className="font-bold text-white">
+                              {player.aiDifficulty === 'hard' ? 'רמה קשה' : player.aiDifficulty === 'easy' ? 'רמה קלה' : 'רמה בינונית'}
+                            </span>
+                            <span className="text-slate-500">·</span>
+                            <span className="text-slate-300">
+                              {player.aiPersonality === 'aggressive' ? 'דוקטרינת הסתערות' : player.aiPersonality === 'defensive' ? 'דוקטרינה מבוצרת' : 'דוקטרינה מאוזנת'}
+                            </span>
+                          </div>
                         )
                       ) : (
                         player.id === currentPlayerId ? 'אתה' : 'שחקן אורח'

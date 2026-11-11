@@ -19,7 +19,9 @@ import {
   Player, 
   GameRecord, 
   UserProfile, 
-  TerritoryState 
+  TerritoryState,
+  AiDifficulty,
+  AiPersonality
 } from './types/risk';
 import { 
   createInitialGameState, 
@@ -304,8 +306,10 @@ export default function App() {
     playersCount: number;
     hostColor: string;
     aiCount: number;
-    aiDifficulty?: 'easy' | 'medium' | 'hard' | 'balanced' | 'aggressive' | 'defensive';
-    aiPersonalities?: Array<'easy' | 'medium' | 'hard' | 'balanced' | 'aggressive' | 'defensive'>;
+    aiDifficulty?: AiDifficulty;
+    aiPersonality?: AiPersonality;
+    aiDifficulties?: AiDifficulty[];
+    aiPersonalities?: AiPersonality[];
     mapType?: 'world' | 'israel';
     autoStart?: boolean;
   }) => {
@@ -336,12 +340,17 @@ export default function App() {
     // Pick unique colors for remaining slots
     const availableColors = PLAYER_COLORS.filter(c => c.hex !== config.hostColor);
 
-    // Add configured AI bots with their individual personalities
+    // Add configured AI bots with their individual difficulty AND personality
     for (let i = 0; i < config.aiCount; i++) {
       const botProfile = AI_BOT_NAMES[i % AI_BOT_NAMES.length];
       const botColor = availableColors[i % availableColors.length];
-      const botPersonality = (config.aiPersonalities && config.aiPersonalities[i]) 
-        || config.aiDifficulty 
+      
+      const botDifficulty: AiDifficulty = (config.aiDifficulties && config.aiDifficulties[i])
+        || config.aiDifficulty
+        || 'medium';
+
+      const botPersonality: AiPersonality = (config.aiPersonalities && config.aiPersonalities[i])
+        || config.aiPersonality
         || 'balanced';
 
       players.push({
@@ -353,6 +362,7 @@ export default function App() {
         textClass: botColor.textClass,
         isHost: false,
         isAi: true,
+        aiDifficulty: botDifficulty,
         aiPersonality: botPersonality,
         isReady: true,
         eliminated: false
@@ -513,6 +523,7 @@ export default function App() {
       textClass: colorDef.textClass,
       isHost: false,
       isAi: true,
+      aiDifficulty: 'medium',
       aiPersonality: 'balanced',
       isReady: true,
       eliminated: false
