@@ -19,10 +19,11 @@ export interface Territory {
   id: string;
   nameHebrew: string;
   nameEnglish: string;
-  continent: ContinentId;
+  continent: string;
   adjacentIds: string[];
   x: number;
   y: number;
+  flag?: string;
 }
 
 export interface Player {
@@ -68,6 +69,7 @@ export interface LogEntry {
 
 export interface GameState {
   roomCode: string;
+  mapType?: 'world' | 'israel';
   turn: number;
   round: number;
   activePlayerIndex: number;
@@ -122,6 +124,9 @@ export interface GameRecord {
 export interface UserProfile {
   id: string;
   nickname: string;
+  email?: string;
+  authProvider?: 'guest' | 'google' | 'password';
+  avatarUrl?: string;
   preferredColor: string;
   gamesPlayed: number;
   gamesWon: number;

@@ -60,7 +60,16 @@ export async function executeAiTurn(
         }
       }
 
-      const score = (enemyNeighbors * 5) + (continentBonusScore) - (state.territories[tId].armies * 0.5);
+      let score = (enemyNeighbors * 5) + (continentBonusScore) - (state.territories[tId].armies * 0.5);
+      if (aiPlayer.aiPersonality === 'defensive') {
+        // Defensive AI strongly fortifies borders and endangered territories
+        score = (enemyNeighbors * 8) - (state.territories[tId].armies * 0.8) + (minEnemyArmies > 3 ? 10 : 0);
+      } else if (aiPlayer.aiPersonality === 'aggressive') {
+        // Aggressive AI packs troops onto offensive launchpads
+        const canCrushEnemy = minEnemyArmies <= 2 ? 12 : 0;
+        score = (enemyNeighbors * 6) + canCrushEnemy + (state.territories[tId].armies * 0.3);
+      }
+
       if (score > highestScore) {
         highestScore = score;
         bestTargetId = tId;
@@ -106,9 +115,9 @@ export async function executeAiTurn(
   onStateUpdate(state);
   await wait(500);
 
-  // AI executes attacks
+  // AI executes attacks based on personality
   let attacksMade = 0;
-  const maxAttacks = aiPlayer.aiPersonality === 'aggressive' ? 7 : 4;
+  const maxAttacks = aiPlayer.aiPersonality === 'aggressive' ? 7 : (aiPlayer.aiPersonality === 'defensive' ? 2 : 4);
 
   while (attacksMade < maxAttacks) {
     if (isCancelled()) return;
@@ -130,8 +139,11 @@ export async function executeAiTurn(
         const targetTerritory = state.territories[toId];
         if (targetTerritory && targetTerritory.ownerId !== aiPlayer.id) {
           const toArmies = targetTerritory.armies;
-          // Must have advantage
-          const threshold = aiPlayer.aiPersonality === 'aggressive' ? 1.1 : 1.35;
+          // Must have advantage based on personality
+          const threshold = aiPlayer.aiPersonality === 'aggressive' 
+            ? 1.05 
+            : (aiPlayer.aiPersonality === 'defensive' ? 1.6 : 1.3);
+
           if (fromArmies > toArmies * threshold || (fromArmies >= 3 && toArmies === 1)) {
             const ratio = fromArmies / (toArmies || 1);
             if (ratio > maxRatio) {

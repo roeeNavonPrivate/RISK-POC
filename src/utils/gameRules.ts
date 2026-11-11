@@ -5,11 +5,19 @@ import {
   BattleDiceRoll, 
   LogEntry 
 } from '../types/risk';
-import { CONTINENTS, TERRITORIES, TERRITORY_MAP } from '../data/riskMapData';
+import { 
+  getTerritoriesForMap, 
+  getContinentsForMap, 
+  getTerritoryMapForMap,
+  CONTINENTS, 
+  TERRITORIES, 
+  TERRITORY_MAP 
+} from '../data/riskMapData';
 
 export function calculateReinforcements(
   playerId: string, 
-  territories: Record<string, TerritoryState>
+  territories: Record<string, TerritoryState>,
+  mapType: 'world' | 'israel' = 'world'
 ): { total: number; base: number; continentBonuses: Array<{ name: string; bonus: number }> } {
   // Count player territories
   let count = 0;
@@ -23,9 +31,11 @@ export function calculateReinforcements(
   const continentBonuses: Array<{ name: string; bonus: number }> = [];
   let bonusSum = 0;
 
-  // Check each continent
-  for (const cKey in CONTINENTS) {
-    const continent = CONTINENTS[cKey];
+  const continentDefs = getContinentsForMap(mapType);
+
+  // Check each continent / district zone
+  for (const cKey in continentDefs) {
+    const continent = continentDefs[cKey];
     const ownsAll = continent.territoryIds.every(
       tId => territories[tId]?.ownerId === playerId
     );
@@ -42,9 +52,14 @@ export function calculateReinforcements(
   };
 }
 
-// Initial game setup: distribute 42 territories among active players
-export function createInitialGameState(players: Player[], roomCode: string): GameState {
-  const shuffledTerritoryIds = [...TERRITORIES.map(t => t.id)].sort(() => Math.random() - 0.5);
+// Initial game setup: distribute territories among active players
+export function createInitialGameState(
+  players: Player[], 
+  roomCode: string,
+  mapType: 'world' | 'israel' = 'world'
+): GameState {
+  const mapTerritories = getTerritoriesForMap(mapType);
+  const shuffledTerritoryIds = [...mapTerritories.map(t => t.id)].sort(() => Math.random() - 0.5);
   const territories: Record<string, TerritoryState> = {};
 
   // Deal territories round-robin
@@ -59,21 +74,23 @@ export function createInitialGameState(players: Player[], roomCode: string): Gam
   });
 
   const firstPlayer = players[0];
-  const { total: initialReinforcements } = calculateReinforcements(firstPlayer.id, territories);
+  const { total: initialReinforcements } = calculateReinforcements(firstPlayer.id, territories, mapType);
 
+  const mapTitle = mapType === 'israel' ? 'מפת ישראל' : 'מפת העולם';
   const initialLog: LogEntry = {
     id: 'log_start',
     turn: 1,
     playerId: firstPlayer.id,
     playerName: firstPlayer.name,
     playerColor: firstPlayer.color,
-    text: `המשחק החל! התור של ${firstPlayer.name}. קיבל ${initialReinforcements} תגבורות.`,
+    text: `הקרב ב${mapTitle} החל! תור ${firstPlayer.name}. קיבל ${initialReinforcements} תגבורות.`,
     type: 'system',
     timestamp: Date.now()
   };
 
   return {
     roomCode,
+    mapType,
     turn: 1,
     round: 1,
     activePlayerIndex: 0,
@@ -140,13 +157,15 @@ export function isPathConnected(
   fromId: string, 
   toId: string, 
   playerId: string, 
-  territories: Record<string, TerritoryState>
+  territories: Record<string, TerritoryState>,
+  mapType: 'world' | 'israel' = 'world'
 ): boolean {
   if (fromId === toId) return true;
   if (territories[fromId]?.ownerId !== playerId || territories[toId]?.ownerId !== playerId) {
     return false;
   }
 
+  const territoryMap = getTerritoryMapForMap(mapType);
   const visited = new Set<string>();
   const queue = [fromId];
   visited.add(fromId);
@@ -155,7 +174,7 @@ export function isPathConnected(
     const current = queue.shift()!;
     if (current === toId) return true;
 
-    const territoryDef = TERRITORY_MAP[current];
+    const territoryDef = territoryMap[current];
     if (!territoryDef) continue;
 
     for (const neighborId of territoryDef.adjacentIds) {

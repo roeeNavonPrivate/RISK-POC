@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Shield, AlertTriangle, Swords } from 'lucide-react';
 import { Player, TerritoryState } from '../types/risk';
-import { TERRITORY_MAP } from '../data/riskMapData';
+import { TERRITORY_MAP, ISRAEL_TERRITORY_MAP } from '../data/riskMapData';
 
 interface DefenderAlertModalProps {
   territoryId: string;
@@ -20,7 +20,7 @@ export const DefenderAlertModal: React.FC<DefenderAlertModalProps> = ({
   onSelectDefenderDice,
   onDismiss
 }) => {
-  const territoryDef = TERRITORY_MAP[territoryId];
+  const territoryDef = ISRAEL_TERRITORY_MAP[territoryId] || TERRITORY_MAP[territoryId];
   const maxDice = Math.min(2, Math.max(1, armies));
   const [selectedDice, setSelectedDice] = useState<number>(maxDice);
 

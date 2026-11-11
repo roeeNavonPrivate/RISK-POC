@@ -65,16 +65,16 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative text-right max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-[#0d1624]/85 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-[#15233a] border border-[#273e63] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative text-right max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-[#213554] pb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+            <div className="w-12 h-12 rounded-2xl bg-blue-900/30 border border-blue-600/40 flex items-center justify-center text-sky-400">
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+              <div className="text-xs font-bold text-sky-400 uppercase tracking-wider">
                 ניתוח אסטרטגי צבאי מבוסס AI
               </div>
               <h3 className="text-xl font-black text-white">סקירת AI טקטית של המשחק</h3>
@@ -89,7 +89,7 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
         </div>
 
         {/* Quick match metadata header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-[#121c2e] border border-[#233550] text-xs shrink-0">
           <div>
             <span className="text-slate-400">מנצח:</span>{' '}
             <span className="font-bold text-white" style={{ color: game.winnerColor }}>
@@ -111,10 +111,10 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
         </div>
 
         {/* AI Output Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-sm leading-relaxed text-slate-200">
+        <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-2xl bg-[#121c2e] border border-[#233550] text-sm leading-relaxed text-slate-200">
           {isLoading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3 text-center">
-              <div className="w-10 h-10 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 border-3 border-blue-400 border-t-transparent rounded-full animate-spin" />
               <div className="text-sm font-bold text-white">מעבד נתוני קרב ומפיק סקירת AI...</div>
               <div className="text-xs text-slate-400">מנתח החלטות טקטיות, קווי הגנה ותנועות כוחות</div>
             </div>
@@ -130,7 +130,7 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
           <button
             onClick={fetchAnalysis}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#182842] hover:bg-[#1e3456] text-slate-300 font-bold text-xs border border-[#273e63] transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>הפק ניתוח מחדש</span>
@@ -139,15 +139,15 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#182842] hover:bg-[#1e3456] text-slate-300 font-bold text-xs border border-[#273e63] transition-colors cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'הועתק!' : 'העתק ניתוח'}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-colors cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-black text-xs shadow-md transition-colors cursor-pointer"
             >
               סגור
             </button>

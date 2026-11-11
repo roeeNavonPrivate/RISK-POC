@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Swords, ShieldAlert, Award, ArrowLeft, ArrowRight, Dices, AlertTriangle } from 'lucide-react';
 import { Player, TerritoryState } from '../types/risk';
-import { TERRITORY_MAP } from '../data/riskMapData';
+import { TERRITORY_MAP, ISRAEL_TERRITORY_MAP } from '../data/riskMapData';
 import { resolveBattle } from '../utils/gameRules';
 import { sound } from '../utils/audio';
 
@@ -33,8 +33,8 @@ export const AttackModal: React.FC<AttackModalProps> = ({
   onClose,
   onBattleResolved
 }) => {
-  const fromDef = TERRITORY_MAP[fromTerritoryId];
-  const toDef = TERRITORY_MAP[toTerritoryId];
+  const fromDef = ISRAEL_TERRITORY_MAP[fromTerritoryId] || TERRITORY_MAP[fromTerritoryId];
+  const toDef = ISRAEL_TERRITORY_MAP[toTerritoryId] || TERRITORY_MAP[toTerritoryId];
 
   const [fromArmies, setFromArmies] = useState(territories[fromTerritoryId]?.armies || 1);
   const [toArmies, setToArmies] = useState(territories[toTerritoryId]?.armies || 1);

@@ -115,7 +115,7 @@ app.post('/api/rooms/:code/join', (req, res) => {
 // Update game state
 app.post('/api/rooms/:code/state', (req, res) => {
   const code = req.params.code.trim().toUpperCase();
-  const { gameState, status } = req.body;
+  const { gameState, status, players, maxPlayers } = req.body;
   const room = rooms.get(code);
 
   if (!room) {
@@ -124,6 +124,8 @@ app.post('/api/rooms/:code/state', (req, res) => {
 
   if (gameState !== undefined) room.gameState = gameState;
   if (status !== undefined) room.status = status;
+  if (players !== undefined) room.players = players;
+  if (maxPlayers !== undefined) room.maxPlayers = maxPlayers;
   room.updatedAt = Date.now();
   rooms.set(code, room);
 

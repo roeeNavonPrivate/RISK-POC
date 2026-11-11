@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with military career statistics and preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nickname": { "type": "string" },
+        "email": { "type": "string" },
+        "authProvider": { "type": "string" },
+        "preferredColor": { "type": "string" },
+        "rankTitle": { "type": "string" },
+        "gamesPlayed": { "type": "number" },
+        "gamesWon": { "type": "number" },
+        "territoriesConquered": { "type": "number" },
+        "armiesDefeated": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "nickname", "preferredColor"]
+    },
+    "GameRoom": {
+      "title": "GameRoom",
+      "description": "Risk game room state for lobby and active gameplay",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "hostId": { "type": "string" },
+        "status": { "type": "string" },
+        "maxPlayers": { "type": "number" },
+        "players": { "type": "array" },
+        "gameState": { "type": "object" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["code", "hostId", "status"]
+    },
+    "GameHistoryRecord": {
+      "title": "GameHistoryRecord",
+      "description": "Archived battle records and tactical AI reviews",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "roomCode": { "type": "string" },
+        "winnerName": { "type": "string" },
+        "winnerColor": { "type": "string" },
+        "playersCount": { "type": "number" },
+        "turns": { "type": "number" },
+        "totalBattles": { "type": "number" },
+        "aiAnalysis": { "type": "string" }
+      },
+      "required": ["id", "date", "winnerName"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profiles and stats"
+    },
+    "/rooms/{roomCode}": {
+      "schema": "GameRoom",
+      "description": "Multiplayer rooms and synchronized game state"
+    },
+    "/users/{userId}/history/{gameId}": {
+      "schema": "GameHistoryRecord",
+      "description": "Personal game history and tactical reviews"
+    }
+  }
+}

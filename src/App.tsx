@@ -11,6 +11,8 @@ import { ProfileModal } from './components/ProfileModal';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AiReviewModal } from './components/AiReviewModal';
 import { RulesModal } from './components/RulesModal';
+import { AuthModal } from './components/AuthModal';
+import { LandingScreen } from './components/LandingScreen';
 
 import { 
   GameState, 
@@ -35,20 +37,30 @@ import {
   updateGameRecordAnalysis,
   tabSync 
 } from './utils/storage';
-import { PLAYER_COLORS, AI_BOT_NAMES, TERRITORY_MAP } from './data/riskMapData';
+import { testFirestoreConnection, saveProfileToFirestore } from './utils/firebase';
+import { PLAYER_COLORS, AI_BOT_NAMES, TERRITORY_MAP, ISRAEL_TERRITORY_MAP, getTerritoryMapForMap } from './data/riskMapData';
 import { sound } from './utils/audio';
 
 export default function App() {
-  // Navigation & Screen state
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'lobby' | 'game' | 'history'>('home');
+  // Navigation & Screen state: start on landing page
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'home' | 'lobby' | 'game' | 'history'>('landing');
   const [userProfile, setUserProfile] = useState<UserProfile>(getUserProfile());
   const [gameHistory, setGameHistory] = useState<GameRecord[]>(getGameHistory());
 
-  // Active Room state
+  // Active Room state & Map Selection
   const [roomCode, setRoomCode] = useState<string>('');
   const [isHost, setIsHost] = useState<boolean>(false);
+  const [selectedMapType, setSelectedMapType] = useState<'world' | 'israel'>('world');
   const [lobbyPlayers, setLobbyPlayers] = useState<Player[]>([]);
   const [maxPlayersInRoom, setMaxPlayersInRoom] = useState<number>(4);
+
+  // Helper to get Hebrew name for any territory across both World and Israel maps
+  const getTerritoryName = (id: string, mapType: 'world' | 'israel' = gameState?.mapType || selectedMapType || 'world') => {
+    return (mapType === 'israel' ? ISRAEL_TERRITORY_MAP[id] : TERRITORY_MAP[id])?.nameHebrew ||
+      ISRAEL_TERRITORY_MAP[id]?.nameHebrew ||
+      TERRITORY_MAP[id]?.nameHebrew ||
+      id;
+  };
 
   // Active Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -56,7 +68,29 @@ export default function App() {
   // Modals state
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [selectedGameForAi, setSelectedGameForAi] = useState<GameRecord | null>(null);
+
+  useEffect(() => {
+    // Validate Firestore connection on boot
+    testFirestoreConnection();
+  }, []);
+
+  const handleAuthSuccess = (updated: UserProfile) => {
+    setUserProfile(updated);
+    saveUserProfile(updated);
+    saveProfileToFirestore(updated);
+    setCurrentScreen('home');
+  };
+
+  const handleLogout = () => {
+    const defaultProfile = getUserProfile();
+    delete defaultProfile.email;
+    delete defaultProfile.authProvider;
+    setUserProfile(defaultProfile);
+    saveUserProfile(defaultProfile);
+    setCurrentScreen('landing');
+  };
 
   // Pending attack modal state (for attacker)
   const [pendingAttack, setPendingAttack] = useState<{
@@ -119,6 +153,73 @@ export default function App() {
 
     return unsubscribe;
   }, [roomCode]);
+
+  // Continuous server-side room polling for cross-device/browser multiplayer
+  useEffect(() => {
+    if (!roomCode) return;
+
+    let isMounted = true;
+    const pollIntervalMs = currentScreen === 'lobby' ? 1000 : (currentScreen === 'game' ? 1800 : 0);
+    if (!pollIntervalMs) return;
+
+    const syncWithServer = async () => {
+      try {
+        const res = await fetch(`/api/rooms/${roomCode}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted || !data.room) return;
+
+        const serverRoom = data.room;
+
+        // In lobby: sync players list
+        if (currentScreen === 'lobby') {
+          // If guest and host started the game on another device
+          if (!isHost && serverRoom.status === 'playing' && serverRoom.gameState) {
+            setGameState(serverRoom.gameState);
+            setCurrentScreen('game');
+            sound.playVictory();
+            return;
+          }
+
+          if (Array.isArray(serverRoom.players) && serverRoom.players.length > 0) {
+            setLobbyPlayers((prev) => {
+              const prevSummary = prev.map(p => `${p.id}:${p.name}:${p.color}:${p.isReady}:${p.aiPersonality}`).join('|');
+              const serverSummary = serverRoom.players.map((p: any) => `${p.id}:${p.name}:${p.color}:${p.isReady}:${p.aiPersonality}`).join('|');
+
+              if (prevSummary !== serverSummary) {
+                return serverRoom.players;
+              }
+              return prev;
+            });
+          }
+        }
+
+        // In game: for guests (non-active players), sync game state from server
+        if (currentScreen === 'game' && !isHost && serverRoom.gameState) {
+          setGameState(prev => {
+            if (!prev) return serverRoom.gameState;
+            if (serverRoom.gameState.turn !== prev.turn || 
+                serverRoom.gameState.activePlayerIndex !== prev.activePlayerIndex ||
+                serverRoom.gameState.phase !== prev.phase ||
+                serverRoom.gameState.reinforcementsRemaining !== prev.reinforcementsRemaining ||
+                serverRoom.gameState.logs?.length !== prev.logs?.length) {
+              return serverRoom.gameState;
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        // Silently handle transient network hiccup
+      }
+    };
+
+    syncWithServer();
+    const intervalId = setInterval(syncWithServer, pollIntervalMs);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [roomCode, currentScreen, isHost]);
 
   // Cancel any running AI process if navigating away from the game screen
   useEffect(() => {
@@ -203,12 +304,19 @@ export default function App() {
     playersCount: number;
     hostColor: string;
     aiCount: number;
-    aiDifficulty: 'balanced' | 'aggressive' | 'defensive';
+    aiDifficulty?: 'balanced' | 'aggressive' | 'defensive';
+    aiPersonalities?: Array<'balanced' | 'aggressive' | 'defensive'>;
+    mapType?: 'world' | 'israel';
+    autoStart?: boolean;
   }) => {
     const generatedCode = 'RISK-' + Math.floor(1000 + Math.random() * 9000);
     setRoomCode(generatedCode);
     setIsHost(true);
     setMaxPlayersInRoom(config.playersCount);
+    const activeMap = config.mapType || selectedMapType;
+    if (config.mapType) {
+      setSelectedMapType(config.mapType);
+    }
 
     const hostPlayer: Player = {
       id: userProfile.id,
@@ -228,10 +336,14 @@ export default function App() {
     // Pick unique colors for remaining slots
     const availableColors = PLAYER_COLORS.filter(c => c.hex !== config.hostColor);
 
-    // Add configured AI bots
+    // Add configured AI bots with their individual personalities
     for (let i = 0; i < config.aiCount; i++) {
       const botProfile = AI_BOT_NAMES[i % AI_BOT_NAMES.length];
       const botColor = availableColors[i % availableColors.length];
+      const botPersonality = (config.aiPersonalities && config.aiPersonalities[i]) 
+        || config.aiDifficulty 
+        || 'balanced';
+
       players.push({
         id: 'bot_' + Math.random().toString(36).substring(2, 7),
         name: `${botProfile.name}`,
@@ -241,13 +353,27 @@ export default function App() {
         textClass: botColor.textClass,
         isHost: false,
         isAi: true,
-        aiPersonality: config.aiDifficulty,
+        aiPersonality: botPersonality,
         isReady: true,
         eliminated: false
       });
     }
 
     setLobbyPlayers(players);
+
+    // If autoStart requested (e.g. Solo game instant launch)
+    if (config.autoStart) {
+      currentExecutingAiKey.current = '';
+      isAiExecuting.current = false;
+      isAiCancelled.current = false;
+
+      const initialGameState = createInitialGameState(players, generatedCode, activeMap);
+      setGameState(initialGameState);
+      setCurrentScreen('game');
+      sound.playVictory();
+      return;
+    }
+
     setCurrentScreen('lobby');
 
     // Register room on server
@@ -332,9 +458,17 @@ export default function App() {
 
   // Lobby player update (e.g. color or nickname change)
   const handleUpdatePlayerInLobby = (playerId: string, updates: Partial<Player>) => {
-    setLobbyPlayers(prev =>
-      prev.map(p => (p.id === playerId ? { ...p, ...updates } : p))
-    );
+    setLobbyPlayers(prev => {
+      const next = prev.map(p => (p.id === playerId ? { ...p, ...updates } : p));
+      if (roomCode) {
+        fetch(`/api/rooms/${roomCode}/state`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ players: next })
+        }).catch(() => {});
+      }
+      return next;
+    });
   };
 
   // Lobby ready toggle
@@ -350,8 +484,70 @@ export default function App() {
           isReady: target.isReady
         });
       }
+      if (roomCode) {
+        fetch(`/api/rooms/${roomCode}/state`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ players: next })
+        }).catch(() => {});
+      }
       return next;
     });
+  };
+
+  // Add bot dynamically in lobby
+  const handleAddBotInLobby = () => {
+    if (lobbyPlayers.length >= 6) return;
+    const takenColors = new Set(lobbyPlayers.map(p => p.color));
+    const availableColor = PLAYER_COLORS.find(c => !takenColors.has(c.hex))?.hex || PLAYER_COLORS[lobbyPlayers.length % PLAYER_COLORS.length].hex;
+    const colorDef = PLAYER_COLORS.find(c => c.hex === availableColor) || PLAYER_COLORS[0];
+    const botIdx = lobbyPlayers.filter(p => p.isAi).length;
+    const botProfile = AI_BOT_NAMES[botIdx % AI_BOT_NAMES.length];
+
+    const newBot: Player = {
+      id: 'bot_' + Math.random().toString(36).substring(2, 7),
+      name: botProfile.name,
+      color: availableColor,
+      bgClass: colorDef.bgClass,
+      borderClass: colorDef.borderClass,
+      textClass: colorDef.textClass,
+      isHost: false,
+      isAi: true,
+      aiPersonality: 'balanced',
+      isReady: true,
+      eliminated: false
+    };
+
+    const nextPlayers = [...lobbyPlayers, newBot];
+    setLobbyPlayers(nextPlayers);
+
+    if (roomCode) {
+      fetch(`/api/rooms/${roomCode}/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ players: nextPlayers })
+      }).catch(() => {});
+    }
+
+    tabSync.broadcast({
+      type: 'PLAYER_JOINED',
+      roomCode,
+      player: newBot
+    });
+  };
+
+  // Remove bot dynamically in lobby
+  const handleRemoveBotInLobby = (botId: string) => {
+    const nextPlayers = lobbyPlayers.filter(p => p.id !== botId);
+    setLobbyPlayers(nextPlayers);
+
+    if (roomCode) {
+      fetch(`/api/rooms/${roomCode}/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ players: nextPlayers })
+      }).catch(() => {});
+    }
   };
 
   // Host starts the game
@@ -362,7 +558,7 @@ export default function App() {
     isAiExecuting.current = false;
     isAiCancelled.current = false;
 
-    const initialGameState = createInitialGameState(lobbyPlayers, roomCode);
+    const initialGameState = createInitialGameState(lobbyPlayers, roomCode, selectedMapType);
     setGameState(initialGameState);
     setCurrentScreen('game');
     sound.playVictory();
@@ -385,6 +581,16 @@ export default function App() {
 
   // Leave lobby
   const handleLeaveLobby = () => {
+    setGameState(null);
+    setRoomCode('');
+    setCurrentScreen('home');
+  };
+
+  // Quit active game
+  const handleQuitGame = () => {
+    isAiCancelled.current = true;
+    isAiExecuting.current = false;
+    currentExecutingAiKey.current = '';
     setGameState(null);
     setRoomCode('');
     setCurrentScreen('home');
@@ -418,7 +624,7 @@ export default function App() {
           playerId: activePlayer.id,
           playerName: activePlayer.name,
           playerColor: activePlayer.color,
-          text: `${activePlayer.name} הציב ${count} חיילים ב${TERRITORY_MAP[territoryId]?.nameHebrew || territoryId}.`,
+          text: `${activePlayer.name} הציב ${count} חיילים ב${getTerritoryName(territoryId)}.`,
           type: 'reinforce',
           timestamp: Date.now()
         },
@@ -441,9 +647,11 @@ export default function App() {
 
     if (ownedIds.length === 0) return;
 
+    const territoryMap = getTerritoryMapForMap(gameState.mapType || selectedMapType || 'world');
+
     // Prefer territories that border enemies
     const borderIds = ownedIds.filter(id => {
-      const def = TERRITORY_MAP[id];
+      const def = territoryMap[id];
       return def?.adjacentIds.some(adj => gameState.territories[adj]?.ownerId !== activePlayer.id);
     });
 
@@ -558,7 +766,7 @@ export default function App() {
         playerId: activePlayer.id,
         playerName: activePlayer.name,
         playerColor: activePlayer.color,
-        text: `🚩 ${activePlayer.name} כבש את ${TERRITORY_MAP[results.toId]?.nameHebrew} מידי ${defenderPlayer?.name}!`,
+        text: `🚩 ${activePlayer.name} כבש את ${getTerritoryName(results.toId)} מידי ${defenderPlayer?.name}!`,
         type: 'conquer',
         timestamp: Date.now()
       });
@@ -708,7 +916,7 @@ export default function App() {
           playerId: activePlayer.id,
           playerName: activePlayer.name,
           playerColor: activePlayer.color,
-          text: `🛡️ ${activePlayer.name} ביצר: העביר ${armiesToMove} חיילים מ${TERRITORY_MAP[fromId]?.nameHebrew} ל${TERRITORY_MAP[toId]?.nameHebrew}.`,
+          text: `🛡️ ${activePlayer.name} ביצר: העביר ${armiesToMove} חיילים מ${getTerritoryName(fromId)} ל${getTerritoryName(toId)}.`,
           type: 'fortify',
           timestamp: Date.now()
         },
@@ -740,7 +948,8 @@ export default function App() {
     const nextTurn = nextIndex === 0 ? currentState.turn + 1 : currentState.turn;
     const { total: nextReinforcements } = calculateReinforcements(
       nextPlayer.id,
-      currentState.territories
+      currentState.territories,
+      currentState.mapType || selectedMapType || 'world'
     );
 
     const nextState: GameState = {
@@ -772,20 +981,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
-      {/* Top Navbar */}
-      <Navbar
-        currentScreen={currentScreen}
-        roomCode={roomCode}
-        onNavigate={(screen) => setCurrentScreen(screen)}
-        onOpenProfile={() => setShowProfileModal(true)}
-        onOpenRules={() => setShowRulesModal(true)}
-        onOpenHistory={() => setCurrentScreen('history')}
-        userNickname={userProfile.nickname}
-      />
+    <div className="min-h-screen bg-[#0c1017] text-slate-100 flex flex-col font-sans selection:bg-[#c5a059] selection:text-slate-950">
+      {/* Top Navbar - hidden on landing page for full immersion */}
+      {currentScreen !== 'landing' && (
+        <Navbar
+          currentScreen={currentScreen}
+          roomCode={roomCode}
+          onNavigate={(screen) => setCurrentScreen(screen)}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onOpenRules={() => setShowRulesModal(true)}
+          onOpenHistory={() => setCurrentScreen('history')}
+          onOpenAuth={() => setCurrentScreen('landing')}
+          userNickname={userProfile.nickname}
+          userEmail={userProfile.email}
+          onLogout={handleLogout}
+          onQuitGame={handleQuitGame}
+        />
+      )}
 
       {/* Main View Area */}
       <main className="flex-1 w-full pb-12">
+        {currentScreen === 'landing' && (
+          <LandingScreen
+            currentProfile={userProfile}
+            onAuthSuccess={handleAuthSuccess}
+          />
+        )}
+
         {currentScreen === 'home' && (
           <HomeScreen
             userProfile={userProfile}
@@ -806,10 +1028,14 @@ export default function App() {
             currentPlayerId={userProfile.id}
             players={lobbyPlayers}
             maxPlayers={maxPlayersInRoom}
+            selectedMapType={selectedMapType}
+            onSelectMapType={(map) => setSelectedMapType(map)}
             onUpdatePlayer={handleUpdatePlayerInLobby}
             onToggleReady={handleToggleReady}
             onStartGame={handleStartGame}
             onLeaveLobby={handleLeaveLobby}
+            onAddBot={handleAddBotInLobby}
+            onRemoveBot={handleRemoveBotInLobby}
           />
         )}
 
@@ -823,6 +1049,7 @@ export default function App() {
             onNextPhase={handleNextPhase}
             onEndTurn={handleEndTurn}
             onAutoPlaceReinforcements={handleAutoPlaceReinforcements}
+            onQuitGame={handleQuitGame}
           />
         )}
 
@@ -929,6 +1156,19 @@ export default function App() {
           onSaveAnalysis={(gameId, text) => {
             updateGameRecordAnalysis(gameId, text);
             setGameHistory(getGameHistory());
+          }}
+        />
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          currentProfile={userProfile}
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onLoginSuccess={(profile) => {
+            handleAuthSuccess(profile);
+            setShowAuthModal(false);
           }}
         />
       )}

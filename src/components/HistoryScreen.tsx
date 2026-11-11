@@ -33,20 +33,20 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="flex items-center justify-between border-b border-[#213554] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <div className="w-12 h-12 rounded-2xl bg-blue-900/30 border border-blue-600/40 flex items-center justify-center text-sky-400">
             <History className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">היסטוריית קרבות ומבצעים</h1>
+            <h1 className="text-2xl font-black text-white font-cinzel">היסטוריית קרבות ומבצעים</h1>
             <p className="text-xs text-slate-400">מעקב אחר כל הקרבות, מנצחים וסקירות AI טקטיות</p>
           </div>
         </div>
 
         <button
           onClick={onBackToHome}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#182842] hover:bg-[#1e3456] text-slate-200 text-xs font-bold border border-[#273e63] transition-colors cursor-pointer"
         >
           <ArrowRight className="w-4 h-4" />
           <span>חזור לראשי</span>
@@ -55,17 +55,17 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 
       {/* History List */}
       {history.length === 0 ? (
-        <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-slate-800/80 space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+        <div className="p-12 text-center rounded-3xl bg-[#15233a] border border-[#273e63] space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-[#1c2e4a] flex items-center justify-center text-slate-400 mx-auto">
             <Swords className="w-7 h-7" />
           </div>
           <h3 className="text-lg font-bold text-white">אין עדיין היסטוריית משחקים</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            השלם את המשחק הראשון שלך במצב מארח או אורח, ופרטי הקרב והסקירה הטקטית יישמרו כאן אוטומטית.
+            השלם את המשחק הראשון שלך במצב מארח או קרב סולו, ופרטי הקרב והסקירה הטקטית יישמרו כאן אוטומטית.
           </p>
           <button
             onClick={onBackToHome}
-            className="mt-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-colors cursor-pointer"
+            className="mt-2 px-5 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-black text-xs transition-colors cursor-pointer"
           >
             פתח משחק ראשון
           </button>
@@ -78,12 +78,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             return (
               <div
                 key={game.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-lg transition-all"
+                className="rounded-2xl border border-[#273e63] bg-[#15233a] overflow-hidden shadow-lg transition-all"
               >
                 {/* Game Summary Row */}
                 <div
                   onClick={() => setExpandedGameId(isExpanded ? null : game.id)}
-                  className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/40 transition-colors"
+                  className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:bg-[#1a2d4b] transition-colors"
                 >
                   <div className="flex items-center gap-3.5">
                     <div 
@@ -98,7 +98,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         <span className="text-sm font-black text-white">
                           מנצח: <span style={{ color: game.winnerColor }}>{game.winnerName}</span>
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#1c2e4a] text-sky-400 font-mono">
                           {game.roomCode}
                         </span>
                       </div>
@@ -116,16 +116,15 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 self-end sm:self-center">
-                    {/* Prompt specified: (לחיצה על סקירת AI) */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedGameForAi(game);
                       }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-900/40 hover:bg-blue-900/60 text-sky-300 border border-blue-600/40 text-xs font-bold transition-all cursor-pointer shadow-sm"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                       <span>(לחיצה על סקירת AI)</span>
                     </button>
 
@@ -137,7 +136,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="p-5 border-t border-slate-800/80 bg-slate-950/60 space-y-4 text-right animate-in fade-in duration-150">
+                  <div className="p-5 border-t border-[#213554] bg-[#121c2e] space-y-4 text-right animate-in fade-in duration-150">
                     {/* Player Performances */}
                     <div className="space-y-2">
                       <div className="text-xs font-bold text-slate-400">ביצועי השחקנים בקרב:</div>

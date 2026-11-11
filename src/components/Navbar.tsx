@@ -1,15 +1,19 @@
 import React from 'react';
-import { Shield, BookOpen, User, History, Volume2, VolumeX, Home, Copy, Check } from 'lucide-react';
+import { Shield, BookOpen, User, History, Volume2, VolumeX, Home, Copy, Check, LogIn, LogOut } from 'lucide-react';
 import { sound } from '../utils/audio';
 
 interface NavbarProps {
-  currentScreen: 'home' | 'lobby' | 'game' | 'history';
+  currentScreen: 'landing' | 'home' | 'lobby' | 'game' | 'history';
   roomCode?: string;
-  onNavigate: (screen: 'home' | 'lobby' | 'game' | 'history') => void;
+  onNavigate: (screen: 'landing' | 'home' | 'lobby' | 'game' | 'history') => void;
   onOpenProfile: () => void;
   onOpenRules: () => void;
   onOpenHistory: () => void;
+  onOpenAuth: () => void;
   userNickname: string;
+  userEmail?: string;
+  onLogout?: () => void;
+  onQuitGame?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,7 +23,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenProfile,
   onOpenRules,
   onOpenHistory,
-  userNickname
+  onOpenAuth,
+  userNickname,
+  userEmail,
+  onLogout,
+  onQuitGame
 }) => {
   const [soundOn, setSoundOn] = React.useState(sound.isEnabled());
   const [copied, setCopied] = React.useState(false);
@@ -38,30 +46,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="bg-slate-900/90 border-b border-slate-800 backdrop-blur-md sticky top-0 z-40 px-4 py-2.5">
+    <header className="bg-[#15233a]/95 border-b border-[#273e63] backdrop-blur-md sticky top-0 z-40 px-4 py-2.5">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand / Logo */}
         <div className="flex items-center gap-3">
           <button 
             onClick={() => onNavigate('home')}
-            className="flex items-center gap-2 group text-right cursor-pointer"
+            className="flex items-center gap-2.5 group text-right cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-red-600 flex items-center justify-center shadow-lg shadow-red-900/30 group-hover:scale-105 transition-transform border border-amber-400/30">
-              <Shield className="w-5 h-5 text-amber-100" />
+            <div className="w-9 h-9 rounded-xl bg-[#1c2e4a] border border-[#2e4c7a] flex items-center justify-center text-sky-400 shadow-inner group-hover:border-blue-400 transition-colors">
+              <Shield className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-extrabold text-xl tracking-tight text-white flex items-center gap-1.5">
-                סיכון <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">RISK</span>
-              </span>
-              <p className="text-xs text-slate-400">אסטרטגיה וכיבוש עולמי</p>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-lg tracking-tight text-white font-cinzel">
+                  סיכון · RISK
+                </span>
+                <span className="text-[10px] font-mono text-sky-400 font-bold uppercase tracking-wider">
+                  STRATEGIC
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300">המערכה לשליטה עולמית</p>
             </div>
           </button>
 
           {/* Room Code Badge */}
           {roomCode && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-800/80 rounded-lg border border-slate-700/80 text-xs">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-[#141b26] rounded-lg border border-[#2b3a4f] text-xs">
               <span className="text-slate-400">חדר:</span>
-              <span className="font-mono font-bold text-amber-400 tracking-wider">{roomCode}</span>
+              <span className="font-mono font-bold text-[#c5a059] tracking-wider">{roomCode}</span>
               <button 
                 onClick={copyRoomCode}
                 title="העתק קוד חדר"
@@ -74,55 +87,89 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {currentScreen !== 'home' && (
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {currentScreen === 'game' && onQuitGame ? (
             <button
-              onClick={() => onNavigate('home')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-              title="חזור למסך הראשי"
+              onClick={onQuitGame}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#dc2626]/20 hover:bg-[#dc2626] text-red-200 hover:text-white border border-[#dc2626]/40 transition-colors cursor-pointer"
+              title="פרוש מהקרב וחזור לראשי"
             >
-              <Home className="w-4 h-4" />
-              <span className="hidden md:inline">ראשי</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>פרוש מהקרב</span>
             </button>
+          ) : (
+            currentScreen !== 'home' && (
+              <button
+                onClick={() => onNavigate('home')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1a2332] transition-colors cursor-pointer"
+                title="חזור למסך הראשי"
+              >
+                <Home className="w-4 h-4" />
+                <span className="hidden md:inline">ראשי</span>
+              </button>
+            )
           )}
 
           <button
             onClick={onOpenRules}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1a2332] transition-colors cursor-pointer"
             title="חוקי המשחק והוראות"
           >
-            <BookOpen className="w-4 h-4 text-amber-400" />
+            <BookOpen className="w-4 h-4 text-[#c5a059]" />
             <span className="hidden sm:inline">חוקים</span>
           </button>
 
           <button
             onClick={onOpenHistory}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title="היסטוריית משחקים וסקירות AI"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1a2332] transition-colors cursor-pointer"
+            title="היסטוריית קרבות ותחקירים"
           >
-            <History className="w-4 h-4 text-blue-400" />
-            <span className="hidden sm:inline">היסטוריה</span>
+            <History className="w-4 h-4 text-slate-300" />
+            <span className="hidden sm:inline">יומן</span>
           </button>
 
+          {/* Sound Mute Toggle */}
           <button
             onClick={toggleSound}
-            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title={soundOn ? 'השתק קולות' : 'הפעל קולות'}
+            className={`p-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+              soundOn 
+                ? 'border-[#2d3d52] bg-[#141b26] text-amber-300 hover:bg-[#1c2738]' 
+                : 'border-[#2d3d52] bg-[#141b26] text-slate-500 hover:bg-[#1c2738]'
+            }`}
+            title={soundOn ? 'השתק צלילים' : 'הפעל צלילים'}
           >
-            {soundOn ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
-          {/* Profile Button */}
-          <button
-            onClick={onOpenProfile}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-slate-800 to-slate-700/80 hover:from-slate-700 hover:to-slate-600 border border-slate-700 text-slate-200 text-xs font-bold transition-all shadow-sm cursor-pointer"
-            title="פרופיל שחקן"
-          >
-            <div className="w-5 h-5 rounded-full bg-amber-500/30 text-amber-300 flex items-center justify-center font-bold text-[10px] border border-amber-500/40">
-              <User className="w-3 h-3" />
+          {/* Profile / Auth Button */}
+          {userEmail ? (
+            <div className="flex items-center gap-1.5 bg-[#141b26] border border-[#2b3a4f] rounded-lg px-2.5 py-1">
+              <button
+                onClick={onOpenProfile}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-amber-300 transition-colors cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 text-[#c5a059]" />
+                <span className="max-w-[100px] truncate">{userNickname}</span>
+              </button>
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer mr-1"
+                  title="התנתק"
+                >
+                  <LogOut className="w-3 h-3" />
+                </button>
+              )}
             </div>
-            <span className="max-w-[100px] truncate">{userNickname}</span>
-          </button>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-black text-xs shadow transition-colors cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>כניסה / הרשמה</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

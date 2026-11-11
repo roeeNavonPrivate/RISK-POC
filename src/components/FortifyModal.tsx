@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Player, TerritoryState } from '../types/risk';
-import { TERRITORY_MAP } from '../data/riskMapData';
+import { TERRITORY_MAP, ISRAEL_TERRITORY_MAP } from '../data/riskMapData';
 import { sound } from '../utils/audio';
 
 interface FortifyModalProps {
@@ -21,8 +21,8 @@ export const FortifyModal: React.FC<FortifyModalProps> = ({
   onClose,
   onExecuteFortify
 }) => {
-  const fromDef = TERRITORY_MAP[fromTerritoryId];
-  const toDef = TERRITORY_MAP[toTerritoryId];
+  const fromDef = ISRAEL_TERRITORY_MAP[fromTerritoryId] || TERRITORY_MAP[fromTerritoryId];
+  const toDef = ISRAEL_TERRITORY_MAP[toTerritoryId] || TERRITORY_MAP[toTerritoryId];
 
   const fromArmies = territories[fromTerritoryId]?.armies || 1;
   const toArmies = territories[toTerritoryId]?.armies || 1;
